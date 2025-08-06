@@ -393,7 +393,7 @@ class v8SegmentationLoss(v8DetectionLoss):
         gt_mask: torch.Tensor, pred: torch.Tensor, proto: torch.Tensor, xyxy: torch.Tensor, area: torch.Tensor
     ) -> torch.Tensor:
         """
-        Compute the instance segmentation loss for a single image.
+        Compute the instance segmentation loss for a single image using BCE and Dice losses.
 
         Args:
             gt_mask (torch.Tensor): Ground truth mask of shape (N, H, W), where N is the number of objects.
@@ -410,8 +410,18 @@ class v8SegmentationLoss(v8DetectionLoss):
             predicted masks from the prototype masks and predicted mask coefficients.
         """
         pred_mask = torch.einsum("in,nhw->ihw", pred, proto)  # (n, 32) @ (32, 80, 80) -> (n, 80, 80)
-        loss = F.binary_cross_entropy_with_logits(pred_mask, gt_mask, reduction="none")
-        return (crop_mask(loss, xyxy).mean(dim=(1, 2)) / area).sum()
+        bce = F.binary_cross_entropy_with_logits(pred_mask, gt_mask, reduction="none")
+        bce = crop_mask(bce, xyxy).mean(dim=(1, 2))
+
+        # Dice loss
+        pred_prob = pred_mask.sigmoid()
+        pred_prob = crop_mask(pred_prob, xyxy)
+        gt_mask_cropped = crop_mask(gt_mask, xyxy)
+        intersect = (pred_prob * gt_mask_cropped).sum(dim=(1, 2))
+        union = pred_prob.sum(dim=(1, 2)) + gt_mask_cropped.sum(dim=(1, 2))
+        dice = 1 - (2 * intersect + 1e-7) / (union + 1e-7)
+
+        return ((bce + dice) / area).sum()
 
     def calculate_segmentation_loss(
         self,

@@ -13,13 +13,16 @@ This example demonstrates how to perform instance segmentation using a [Ultralyt
 
 2. **Install Requirements**
 
+   Only OpenCV (for ONNX inference) and NumPy are required:
+
    ```bash
-   pip install opencv-python>=4.8 ultralytics
+   pip install opencv-python>=4.8 numpy
    ```
 
 3. **Export Your Model**
 
-   If you have a trained YOLO11 segmentation model (`yolo11n-seg.pt` for example), export it to ONNX with:
+   If you have a trained YOLO11 segmentation model (`yolo11n-seg.pt` for example), export it to ONNX using the
+   [Ultralytics](https://github.com/ultralytics/ultralytics) CLI (which requires PyTorch) in a separate environment:
 
    ```bash
    yolo export model=yolo11n-seg.pt format=onnx opset=12
